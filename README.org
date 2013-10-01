@@ -1,0 +1,25 @@
+* YASM - Yet Another Stupid Automounter
+** Description
+
+   YASM automatically mounts devices that are specified in its config file. The
+   assumption is that you don't want to mount all devices automatically like
+   most other automounters do, but only a selected few.
+
+** Usage
+
+   There are no command-line options. Just call it on system startup.
+
+   : yasm
+
+** Config File
+
+   The config file lists devices to mount. Each line consists of a property and
+   arbitrary arguments. Properties are:
+
+   - uuid :: Match device by UUID
+   - device :: Match device by device-file
+
+   #+BEGIN_EXAMPLE
+   uuid bfc53be6-ce03-42e8-909a-047c058490c3
+   device /dev/sda1
+   #+END_EXAMPLE

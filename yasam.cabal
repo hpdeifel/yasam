@@ -1,0 +1,17 @@
+name:                yasam
+version:             0.1.0.0
+synopsis:            Yet Another Stupid Automounter
+license:             BSD3
+license-file:        LICENSE
+author:              Hans-Peter Deifel
+maintainer:          hpdeifel@gmx.de
+category:            System
+build-type:          Simple
+cabal-version:       >=1.10
+extra-source-files:  README.org
+
+executable yasam
+  main-is:             Main.hs
+  other-extensions:    OverloadedStrings
+  build-depends:       base >=4.6 && <4.7, errors >=1.4 && <1.5, unix >=2.6 && <2.7, dbus >=0.10 && <0.11
+  default-language:    Haskell2010
