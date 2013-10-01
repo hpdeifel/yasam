@@ -19,16 +19,14 @@ config_file home = home ++ "/.automounter.conf"
 
 main :: IO ()
 main = do
-  home <- getEnv "HOME"
+  matchers <- getEnv "HOME" >>= readConfig . config_file
   conn <- connectSystem
-  matchers <- readConfig (config_file home)
+
   runScript $ do
     devs <- getDeviceList conn
     mapM_ (mountIfMatches conn matchers) devs
-    return ()
 
-  conn `onAdded` \dev -> do
-    mountIfMatches conn matchers dev
+  conn `onAdded` mountIfMatches conn matchers
 
   mvar <- newEmptyMVar
   installHandler sigINT (Catch $ handler mvar) Nothing
@@ -45,9 +43,7 @@ data DeviceMatcher = DeviceFile FilePath
   deriving (Show)
 
 readConfig :: FilePath -> IO [DeviceMatcher]
-readConfig path = do
-  file <- readFile path
-  return (parseConfig file)
+readConfig path = parseConfig <$> readFile path
 
 parseConfig :: String -> [DeviceMatcher]
 parseConfig = map parseLine . lines
@@ -71,19 +67,17 @@ getDeviceList conn = getDevicePathList conn >>= mapM (getDevice conn)
 
 matches :: Device -> DeviceMatcher -> Bool
 matches (Device _ path1 _ _) (DeviceFile path2) = path1 == path2
-matches (Device _ _ uuid1 _) (UUID uuid2) = uuid1 == uuid2
+matches (Device _ _ uuid1 _) (UUID uuid2)       = uuid1 == uuid2
 
 mountIfMatches :: Client -> [DeviceMatcher] -> Device -> Script ()
 mountIfMatches conn matchers dev = when (isJust $ find (matches dev) matchers) $
   mount conn dev
 
 mount :: Client -> Device -> Script ()
-mount conn (Device path _ _ mounted) = unless mounted $
-  bimapEitherT show (const ()) $ EitherT $
-    call conn $ (methodCall path devIFace "FilesystemMount") {
-      methodCallDestination = Just udisksDest,
-      methodCallBody = [toVariant ("" :: String), toVariant ([] :: [String])]
-      }
+mount conn (Device path _ _ mounted) = unless mounted $ do
+  call' conn path devIFace "FilesystemMount" [ toVariant ("" :: String)
+                                             , toVariant ([] :: [String]) ]
+  return ()
 
 onAdded :: Client -> (Device -> Script ()) -> IO ()
 onAdded conn func = listen conn match callback
@@ -100,8 +94,7 @@ onAdded conn func = listen conn match callback
         callback' sig = do
           objPath <- hoistEither $ note "Couldn't convert variant of type " $
                        fromVariant $ head $ signalBody sig
-          dev <- getDevice conn objPath
-          func dev
+          getDevice conn objPath >>= func
         
 
 getDevice :: Client -> ObjectPath -> Script Device
@@ -111,41 +104,41 @@ getDevice conn path = do
   mounted <- prop "DeviceIsMounted"
   return $ Device path file uuid mounted
 
-  where prop :: (IsVariant t) => String -> Script t
-        prop = fmap fromVariant' . getProperty conn path devIFace
+  where prop s = getProperty conn path devIFace s >>= fromVariantM
 
 getProperty :: Client -> ObjectPath -> InterfaceName -> String -> Script Variant
-getProperty conn path iface property = EitherT $ do
-  res <- call conn $ (methodCall path propIFace "Get") {
-    methodCallDestination = Just udisksDest,
-    methodCallBody = [toVariant iface, toVariant property]
-  }
-  case res of
-    Left e -> return $ Left $ show e
-    Right res' -> return $ Right $ fromVariant' $ head $ methodReturnBody res'
+getProperty conn path iface property =
+  call' conn path propIFace "Get" [toVariant iface, toVariant property]
+  >>= fromVariantM
 
 getDevicePathList :: Client -> Script [ObjectPath]
-getDevicePathList conn = fmap (fromVariant'.  head . methodReturnBody) $
-  EitherT $ fmapL show <$> call conn
-         (methodCall udisksObjPath udisksIFace "EnumerateDevices") {
-           methodCallDestination = Just udisksDest
-         }
+getDevicePathList conn =
+  call' conn udisksObjPath udisksIFace "EnumerateDevices" [] >>= fromVariantM
 
-fromVariant' :: (IsVariant t) => Variant -> t
-fromVariant' v = case fromVariant v of
-  Just v' -> v'
-  Nothing -> error $ "Couldn't convert variant of type " ++ show (variantType v)
+call' :: Client -> ObjectPath -> InterfaceName -> MemberName -> [Variant]
+      -> Script Variant
+call' conn path iface member args = do
+  res <- EitherT $ fmapL show <$> call conn (methodCall path iface member) {
+      methodCallDestination = Just udisksDest,
+      methodCallBody = args
+    }
+
+  headMay (methodReturnBody res)
+    ?? ("Method " ++ show member ++ " returned no value")
+
+fromVariant' :: (IsVariant t) => Variant -> Either String t
+fromVariant' v =
+  note ("Couldn't cast Variant of type " ++ show (variantType v)) $ fromVariant v
+
+fromVariantM :: (IsVariant t) => Variant -> Script t
+fromVariantM = hoistEither . fromVariant'
 
 udisksObjPath :: ObjectPath
 udisksObjPath = "/org/freedesktop/UDisks"
 
-udisksIFace :: InterfaceName
+udisksIFace, devIFace, propIFace :: InterfaceName
 udisksIFace = "org.freedesktop.UDisks"
-
-devIFace :: InterfaceName
 devIFace = "org.freedesktop.UDisks.Device"
-
-propIFace :: InterfaceName
 propIFace = "org.freedesktop.DBus.Properties"
 
 udisksDest :: BusName
