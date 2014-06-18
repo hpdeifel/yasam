@@ -5,6 +5,22 @@
    assumption is that you don't want to mount all devices automatically like
    most other automounters do, but only a selected few.
 
+** Dependencies
+
+   - ghc
+   - cabal
+
+** Installation
+
+   If you have ghc and cabal installed, you can type
+
+   : cabal install --only-dependencies
+   : cabal configure
+   : cabal build
+   : cabal install --bindir=${HOME}/bin/
+
+   See ~cabal configure --help~ for options.
+
 ** Usage
 
    There are no command-line options. Just call it on system startup.
