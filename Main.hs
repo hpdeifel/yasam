@@ -7,19 +7,18 @@ import Control.Error
 import Control.Concurrent.MVar
 
 import System.Posix.Signals
-import System.Environment
+
+import qualified System.Environment.XDG.BaseDir as XDG
 
 import Data.List
 
 import DBus
 import DBus.Client
 
-config_file :: FilePath -> String
-config_file home = home ++ "/.automounter.conf"
-
 main :: IO ()
 main = do
-  matchers <- getEnv "HOME" >>= readConfig . config_file
+
+  matchers <- XDG.getUserConfigFile "yasam" "yasam.conf" >>= readConfig
   conn <- connectSystem
 
   runScript $ do
