@@ -29,8 +29,8 @@ main = do
   conn `onAdded` mountIfMatches conn matchers
 
   mvar <- newEmptyMVar
-  installHandler sigINT (Catch $ handler mvar) Nothing
-  installHandler sigTERM (Catch $ handler mvar) Nothing
+  void $ installHandler sigINT (Catch $ handler mvar) Nothing
+  void $ installHandler sigTERM (Catch $ handler mvar) Nothing
 
   readMVar mvar
   disconnect conn
