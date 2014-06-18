@@ -31,7 +31,7 @@ main = do
   mvar <- newEmptyMVar
   installHandler sigINT (Catch $ handler mvar) Nothing
   installHandler sigTERM (Catch $ handler mvar) Nothing
-  
+
   readMVar mvar
   disconnect conn
 
@@ -50,7 +50,7 @@ parseConfig = map parseLine . lines
   where parseLine line = case split line of
           ("device", path) -> DeviceFile path
           ("uuid", uuid)   -> UUID uuid
-                           
+
         split str = let (a,b) = break whitespace str
                     in (a, dropWhile whitespace b)
         whitespace = flip elem " \t"
@@ -95,7 +95,7 @@ onAdded conn func = listen conn match callback
           objPath <- hoistEither $ note "Couldn't convert variant of type " $
                        fromVariant $ head $ signalBody sig
           getDevice conn objPath >>= func
-        
+
 
 getDevice :: Client -> ObjectPath -> Script Device
 getDevice conn path = do
