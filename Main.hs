@@ -52,7 +52,7 @@ parseConfig = map parseLine . lines
 
         split str = let (a,b) = break whitespace str
                     in (a, dropWhile whitespace b)
-        whitespace = flip elem " \t"
+        whitespace = flip elem (" \t" :: String)
 
 data Device = Device {
   objectPath :: ObjectPath,
