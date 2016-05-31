@@ -86,7 +86,7 @@ onAdded conn func = listen conn match callback
           matchMember = Just "DeviceAdded"
           }
         callback sig = do
-          res <- runEitherT (callback' sig)
+          res <- runExceptT (callback' sig)
           case res of
             Left e -> err e
             Right r -> return r
@@ -117,7 +117,7 @@ getDevicePathList conn =
 call' :: Client -> ObjectPath -> InterfaceName -> MemberName -> [Variant]
       -> Script Variant
 call' conn path iface member args = do
-  res <- EitherT $ fmapL show <$> call conn (methodCall path iface member) {
+  res <- ExceptT $ fmapL show <$> call conn (methodCall path iface member) {
       methodCallDestination = Just udisksDest,
       methodCallBody = args
     }

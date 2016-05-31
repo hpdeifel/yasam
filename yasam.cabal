@@ -13,5 +13,9 @@ extra-source-files:  README.org
 executable yasam
   main-is:             Main.hs
   other-extensions:    OverloadedStrings
-  build-depends:       base >=4.6 && <4.9, errors >=1.4 && <1.5, unix >=2.6 && <2.8, dbus >=0.10 && <0.11, xdg-basedir >= 0.2 && < 0.3
+  build-depends:       base >=4.6 && <4.9
+                     , errors >=2.1 && <2.2
+                     , unix >=2.6 && <2.8
+                     , dbus >=0.10 && <0.11
+                     , xdg-basedir >= 0.2 && < 0.3
   default-language:    Haskell2010
