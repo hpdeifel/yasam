@@ -13,7 +13,7 @@ extra-source-files:  README.org
 executable yasam
   main-is:             Main.hs
   other-extensions:    OverloadedStrings
-  build-depends:       base >=4.6 && <4.9
+  build-depends:       base >=4.6 && <4.10
                      , errors >=2.1 && <2.2
                      , unix >=2.6 && <2.8
                      , dbus >=0.10 && <0.11
